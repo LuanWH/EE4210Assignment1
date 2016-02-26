@@ -54,7 +54,6 @@ public class Peer {
 		if(client != null){
 			client.close();
 		}
-		System.out.println("SyncPeer joining server thread.");
 		try {
 			server.join();
 		} catch (InterruptedException e) {
