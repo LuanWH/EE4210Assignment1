@@ -1,15 +1,15 @@
 package syncpeer;
 
+import java.io.EOFException;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
-import java.nio.file.Files;
 import java.util.Set;
 
 class ServerProcess extends SyncProcess {
@@ -25,7 +25,110 @@ class ServerProcess extends SyncProcess {
 		this.isClosed = false;
 	}
 
-	@SuppressWarnings("unchecked")
+
+	private boolean requestHandler(){
+		try{
+			oos.writeObject(ACK_REQUEST);
+			oos.flush();
+			String fileName = (String) ois.readObject();
+			oos.writeObject(ACK_NAME);
+			oos.flush();
+			return sendFile(fileName);
+		} catch(IOException | ClassNotFoundException e){
+			System.out.println(name + "1: " + e.getMessage());
+			return false;			
+		}
+	}
+	
+	private boolean pushHandler(){
+		try{
+			oos.writeObject(ACK_PUSH);
+			oos.flush();
+			String fileName = (String) ois.readObject();
+			oos.writeObject(ACK_NAME);
+			oos.flush();
+			return receiveFile(fileName);
+		} catch(IOException | ClassNotFoundException e){
+			System.out.println(name + "2: " + e.getMessage());
+			return false;			
+		}
+	}
+	
+	private boolean syncHandler(){
+		try{
+			oos.writeObject(ACK_SYNC);
+			oos.flush();
+			Set<File> fileList = getFileList();
+			Set<String> fileNameList = getFileNameList(fileList);
+
+			Set<String> clientFileNameList = receiveFileList();
+			
+			if(clientFileNameList == null) {
+				System.out.println("Unable to sync file lists.");
+				return false;
+			}
+
+			Set<String> clientMissingFileNameList = difference(
+					fileNameList, clientFileNameList);
+			Set<String> clientExtraFileNameList = difference(
+					clientFileNameList, fileNameList);
+			
+			boolean success;
+			success = sendFileList(clientMissingFileNameList);
+			if(!success) {
+				System.out.println("Unable to sync file lists.");
+				return false;
+			}
+			
+			success = sendFileList(clientExtraFileNameList);
+			if(!success) {
+				System.out.println("Unable to sync file lists.");
+				return false;
+			}
+			
+			return true;
+			
+		} catch(IOException e){
+			System.out.println(name + "3: " + e.getMessage());
+			return false;			
+		}
+	}
+	
+	private String readCommand() throws IOException{
+		try{
+			String reading = (String) ois.readObject();
+			if(reading != null &&
+			   !reading.isEmpty() &&
+			   reading != "\n"){
+				return reading;
+			}
+			return null;
+		} catch (SocketTimeoutException e){
+			return null;
+		} catch (ClassNotFoundException e){
+			System.out.println(name + ": "+e.getMessage());
+			return null;
+		}
+
+	}
+	
+	private boolean dispatchCommand(String cmd){
+		if(cmd == null ||
+	       cmd.isEmpty() ||
+		   cmd == "\n"){
+			return false;
+		}
+		boolean success = false;
+		if(cmd.equalsIgnoreCase(REQUEST_FILE)){
+			success = requestHandler();
+		} else if(cmd.equalsIgnoreCase(PUSH_FILE)){
+			success = pushHandler();
+		} else if(cmd.equalsIgnoreCase(SYNC_FILE_LIST)){
+			success = syncHandler();
+		}
+		return success;	
+	}
+	
 	@Override
 	public void run() {
 		while (!isClosed()) {
@@ -64,65 +167,41 @@ class ServerProcess extends SyncProcess {
 				}
 
 				if (isClosed()) {
+					if(fromClientSocket != null) fromClientSocket.close();
 					if(socket != null) socket.close();
 					return;
 				}
 				System.out.println(name + ": connection established.");
-
-				Set<File> fileList = getFileList();
-				Set<String> fileNameList = getFileNameList(fileList);
-
-				ObjectOutputStream oos = new ObjectOutputStream(
+				
+				fromClientSocket.setSoTimeout(TIME_OUT*5);
+				oos = new ObjectOutputStream(
 						fromClientSocket.getOutputStream());
-				ObjectInputStream ois = new ObjectInputStream(
+				ois = new ObjectInputStream(
 						fromClientSocket.getInputStream());
-
-				Set<String> clientFileNameList = (Set<String>) ois.readObject();
-
-				Set<String> clientMissingFileNameList = difference(
-						fileNameList, clientFileNameList);
-				Set<String> clientExtraFileNameList = difference(
-						clientFileNameList, fileNameList);
-
-				oos.writeObject(clientMissingFileNameList);
-				oos.writeObject(clientExtraFileNameList);
-
-				System.out.println("Client Missing files:");
-				for (String s : clientMissingFileNameList) {
-					System.out.println(s);
-					File fin = new File(folder.getPath()+File.separator+s);
-					if(!fin.exists()){
-						throw new IOException("File "+fin.getName()+" not found!");
-					}
-					long size = fin.length();
-					oos.writeLong(size);
-					byte[] bytes = Files.readAllBytes(fin.toPath());
-					oos.write(bytes);
-				}
 				
-				System.out.println();
-				
-				System.out.println("Client Extra files:");
-				for (String s : clientExtraFileNameList) {
-					System.out.println(s);
-					File fout = new File(folder.getPath()+File.separator+s);
-					long size = ois.readLong();
-					byte[] bytes = new byte[(int) size];
-					ois.read(bytes);
-					FileOutputStream fos = new FileOutputStream(fout);
-					fos.write(bytes);
-					fos.close();
+				String cmd;
+				while(!isClosed() && !fromClientSocket.isClosed()){
+					cmd = readCommand();
+					if(cmd == null) continue;
+					dispatchCommand(cmd);
 				}
 
-				String ack = (String) ois.readObject();
-				System.out.println("Received from client: " + ack);
 
 				oos.close();
 				ois.close();
 				fromClientSocket.close();
 				socket.close();
 
-			} catch (IOException | ClassNotFoundException e) {
+			} catch (SocketException | EOFException e){
+				try{
+					if(oos != null)oos.close();
+					if(ois != null)ois.close();
+					if(socket != null)socket.close();
+				} catch (Exception e1){
+					System.out.println(name+": "+e1.getMessage());
+				}
+				System.out.println(name+": connected was closed by the peer.");
+			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}

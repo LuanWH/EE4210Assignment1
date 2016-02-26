@@ -1,13 +1,12 @@
 package syncpeer;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.nio.file.Files;
 import java.util.Set;
+import java.util.Vector;
 
 class ClientProcess extends SyncProcess {
 
@@ -26,8 +25,90 @@ class ClientProcess extends SyncProcess {
 	public void setServerIp(String ipAddr) {
 		this.ipAddr = ipAddr;
 	}
+	
+	
+	private Vector<Set<String>> syncFileList(Set<String> fileList){
+		try{
+			boolean success;
+			System.out.println(name + ": "+SYNC_FILE_LIST);
+			oos.writeObject(SYNC_FILE_LIST);
+			oos.flush();
+			System.out.println(name + ": "+SYNC_FILE_LIST+ " sent.");
+			String ack = (String) ois.readObject();
+			if (!ack.equalsIgnoreCase(ACK_SYNC)) {
+				return null;
+			}
+			
+			success = sendFileList(fileList);
+			if(!success){
+				return null;
+			}
+			
+			Vector<Set<String>> result = new Vector<Set<String>>();
+			for(int i = 0; i < FILE_LIST_LENGTH; ++i){
+				Set<String> recv = receiveFileList();
+				if(recv == null){
+					return null;
+				} else {
+					result.add(recv);
+				}
+			}
+			
+			System.out.println(name + ": response received!");
+			
+			return result;
+		} catch (IOException | ClassNotFoundException e){
+			System.out.println(name + ": " + e.getMessage());
+			return null;
+		}
+	}
 
-	@SuppressWarnings("unchecked")
+	private boolean pushFile(String fileName){
+		try {
+			oos.writeObject(PUSH_FILE);
+			oos.flush();
+			String ack = (String) ois.readObject();
+			if (!ack.equalsIgnoreCase(ACK_PUSH)) {
+				return false;
+			}
+			oos.writeObject(fileName);
+			oos.flush();
+			String nameAck = (String) ois.readObject();
+			if (!nameAck.equalsIgnoreCase(ACK_NAME)) {
+				return false;
+			}
+			return sendFile(fileName);
+		} catch (IOException | ClassNotFoundException e) {
+			System.out.println(name + ": " + e.getMessage());
+			return false;
+		}
+	}
+
+	private boolean requestFile(String fileName) {
+		try {
+			System.out.println(name + ": "+REQUEST_FILE);
+			oos.writeObject(REQUEST_FILE);
+			oos.flush();
+			System.out.println(name + ": "+REQUEST_FILE+" sent.");
+			String ack = (String) ois.readObject();
+			if (!ack.equalsIgnoreCase(ACK_REQUEST)) {
+				return false;
+			}
+
+			oos.writeObject(fileName);
+			oos.flush();
+			String nameAck = (String) ois.readObject();
+			if (!nameAck.equalsIgnoreCase(ACK_NAME)) {
+				return false;
+			}
+
+			return receiveFile(fileName);
+		} catch (IOException | ClassNotFoundException e) {
+			System.out.println(name + ": " + e.getMessage());
+			return false;
+		}
+	}
+	
 	@Override
 	public void run() {
 		try {
@@ -37,56 +118,47 @@ class ClientProcess extends SyncProcess {
 			}
 
 			socket = new Socket(ipAddr, port);
-			
 			System.out.println(name+": Connection established.");
+			
+			oos = new ObjectOutputStream(
+					socket.getOutputStream());
+			ois = new ObjectInputStream(
+					socket.getInputStream());
 
+			
 			Set<File> fileList = getFileList();
 			Set<String> fileNameList = getFileNameList(fileList);
 
-			ObjectInputStream ois = new ObjectInputStream(
-					socket.getInputStream());
-			ObjectOutputStream oos = new ObjectOutputStream(
-					socket.getOutputStream());
+			Vector<Set<String>> vLists = syncFileList(fileNameList);
 
-			oos.writeObject(fileNameList);
-
-			Set<String> missingFileNameList = (Set<String>) ois.readObject();
-			Set<String> extraFileNameList = (Set<String>) ois.readObject();
-
-			System.out.println("Missing files:");
-			for (String s : missingFileNameList) {
-				System.out.println(s);
-				File fout = new File(folder.getPath()+File.separator+s);
-				long size = ois.readLong();
-				byte[] bytes = new byte[(int) size];
-				ois.read(bytes);
-				FileOutputStream fos = new FileOutputStream(fout);
-				fos.write(bytes);
-				fos.close();
-			}
-
-			System.out.println();
-
-			System.out.println("Extra files:");
-			for (String s : extraFileNameList) {
-				System.out.println(s);
-				File fin = new File(folder.getPath()+File.separator+s);
-				if(!fin.exists()){
-					throw new IOException("File "+fin.getName()+" not found!");
+			if(vLists == null){
+				System.out.println("Unable to sync file lists.");
+			} else {
+				Set<String> missingFileNameList = vLists.get(MISSING_FILE_LIST_INDEX);
+				Set<String> extraFileNameList = vLists.get(EXTRA_FILE_LIST_INDEX);
+				boolean success;
+				System.out.println("Client Missing files:");
+				for (String s : missingFileNameList) {
+					System.out.println(name+": starting request "+s);
+					success = requestFile(s);
+					System.out.println(name+": request "+success);
 				}
-				long size = fin.length();
-				oos.writeLong(size);
-				byte[] bytes = Files.readAllBytes(fin.toPath());
-				oos.write(bytes);
+				
+				System.out.println();
+				
+				System.out.println("Client Extra files:");
+				for (String s : extraFileNameList) {
+					System.out.println(name+": starting push "+s);
+					success = pushFile(s);
+					System.out.println(name+": push "+success);
+				}
 			}
-
-			String ack = "Received!\n";
-			oos.writeObject(ack);
 
 			ois.close();
 			oos.close();
-
 			socket.close();
+			
+			System.out.println(name+": synchronization finished!");
 
 		} catch (Exception e) {
 			e.printStackTrace();
