@@ -26,10 +26,15 @@ public class Peer {
 
 	public void start() {
 		server.start();
+		if(this.ipAddr != null &&
+		   !this.ipAddr.isEmpty() && 
+		   !this.ipAddr.equals("\n")){
+			connect();
+		}
 		while (true) {
 			String rawReading = scanner.nextLine();
 			if (rawReading == null || rawReading.isEmpty()
-					|| rawReading == "\n") {
+					|| rawReading.equals("\n")) {
 				continue;
 			}
 			String[] reading = rawReading.trim().split(" ");
@@ -63,13 +68,17 @@ public class Peer {
 	}
 
 	private void connect(String[] reading) {
-		if (reading.length < 2 || reading[1].isEmpty() || reading[1] == "\n") {
+		if (reading.length < 2 || reading[1].isEmpty() || reading[1].equals("\n")) {
 			System.out.println("**CONNECT** command Usage: \n"
 					+ "    CONNECT <IP Address>");
 			return;
 		}
 		String ipAddr = reading[1];
 		this.ipAddr = ipAddr;
+		connect();
+	}
+	
+	private void connect() {
 		client = new ClientProcess(this.folder, this.port, this.ipAddr);
 		client.start();
 	}
