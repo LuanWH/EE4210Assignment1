@@ -1,6 +1,6 @@
 package syncpeer;
 
-import java.io.*;
+import java.io.File;
 import java.util.Scanner;
 
 public class Peer {
