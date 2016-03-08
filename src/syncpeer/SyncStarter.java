@@ -1,6 +1,7 @@
 package syncpeer;
 
 import java.io.*;
+import syncpeer.Peer;
 
 public class SyncStarter {
 
