@@ -133,15 +133,10 @@ class ClientProcess extends SyncProcess {
 			} else {
 				Set<String> missingFileNameList = vLists.get(MISSING_FILE_LIST_INDEX);
 				Set<String> extraFileNameList = vLists.get(EXTRA_FILE_LIST_INDEX);
-				System.out.println("Client Missing files:");
 				for (String s : missingFileNameList) {
 					System.out.println(name+": request file "+s);
 					requestFile(s);
 				}
-				
-				System.out.println();
-				
-				System.out.println("Client Extra files:");
 				for (String s : extraFileNameList) {
 					System.out.println(name+": push file "+s);
 					pushFile(s);
