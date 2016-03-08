@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.net.NoRouteToHostException;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
@@ -162,10 +161,7 @@ class ClientProcess extends SyncProcess {
 			socket.close();
 			
 			System.out.println(name+": synchronization finished!");
-		}catch(NoRouteToHostException e){
-			System.out.print(name + ": Failed to establish connection to "+this.ipAddr+". ");
-			System.out.println(e.getMessage());			
-		}catch(SocketException|UnknownHostException e){
+		}catch(UnknownHostException|SocketException e){
 			System.out.print(name + ": Failed to establish connection to "+this.ipAddr+". ");
 			System.out.println(e.getMessage());
 		} catch (Exception e) {
