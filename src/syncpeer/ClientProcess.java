@@ -4,7 +4,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.ConnectException;
+import java.net.NoRouteToHostException;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.Set;
 import java.util.Vector;
 
@@ -159,12 +163,11 @@ class ClientProcess extends SyncProcess {
 			socket.close();
 			
 			System.out.println(name+": synchronization finished!");
-		}catch(java.net.ConnectException e){
-			System.out.println(name + ": Failed to establish connection to "+this.ipAddr);
-		}catch(java.net.UnknownHostException e){
-			System.out.println(name + ": "+this.ipAddr+ " cannot be resolved.");
+		}catch(UnknownHostException|SocketException e){
+			System.out.print(name + ": Failed to establish connection to "+this.ipAddr+". ");
+			System.out.println(e.getMessage());
 		} catch (Exception e) {
-			e.printStackTrace();
+			System.out.println(name + ": Something went wrong - "+e.getMessage()+". Please try again.");
 		}
 	}
 }
