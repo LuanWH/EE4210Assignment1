@@ -111,6 +111,8 @@ class ClientProcess extends SyncProcess {
 				System.out.println("ipAddr not set!");
 				return;
 			}
+			
+			System.out.println(name+": Establishing connection to "+this.ipAddr);
 
 			socket = new Socket(ipAddr, port);
 			System.out.println(name+": Connection established.");
