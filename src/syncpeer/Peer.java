@@ -41,13 +41,13 @@ public class Peer {
 			if (reading.length == 0 || reading[0].isEmpty()
 					|| reading[0].equals("\n")) {
 				continue;
-			}
-			if (reading[0].equalsIgnoreCase(EXIT_COMMAND)) {
+			} else if (reading[0].equalsIgnoreCase(EXIT_COMMAND)) {
 				exit();
 				return;
-			}
-			if (reading[0].equalsIgnoreCase(CONNECT_COMMAND)) {
+			} else if (reading[0].equalsIgnoreCase(CONNECT_COMMAND)) {
 				connect(reading);
+			} else {
+				System.out.println("Your input + "+rawReading+" cannot be handled.");
 			}
 		}
 	}

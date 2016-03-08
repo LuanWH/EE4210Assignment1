@@ -154,8 +154,8 @@ class ClientProcess extends SyncProcess {
 			
 			System.out.println(name+": synchronization finished!");
 		}catch(UnknownHostException|SocketException e){
-			System.out.print(name + ": Failed to establish connection to "+this.ipAddr+". ");
-			System.out.println(e.getMessage());
+			System.out.println(name + ": Failed to establish connection to "+this.ipAddr+". ");
+			System.out.println("Reason: "+e.getMessage());
 		} catch (Exception e) {
 			System.out.println(name + ": Something went wrong - "+e.getMessage()+". Please try again.");
 		}
