@@ -33,6 +33,9 @@ class ServerProcess extends SyncProcess {
 			String fileName = (String) ois.readObject();
 			oos.writeObject(ACK_NAME);
 			oos.flush();
+			
+			System.out.println(name + ": send file "+fileName);
+			
 			return sendFile(fileName);
 		} catch(IOException | ClassNotFoundException e){
 			System.out.println(name + ": " + e.getMessage());
@@ -47,6 +50,9 @@ class ServerProcess extends SyncProcess {
 			String fileName = (String) ois.readObject();
 			oos.writeObject(ACK_NAME);
 			oos.flush();
+			
+			System.out.println(name + ": receive file "+fileName);
+			
 			return receiveFile(fileName);
 		} catch(IOException | ClassNotFoundException e){
 			System.out.println(name + ": " + e.getMessage());
@@ -185,7 +191,6 @@ class ServerProcess extends SyncProcess {
 					if(cmd == null) continue;
 					dispatchCommand(cmd);
 				}
-
 
 				oos.close();
 				ois.close();
