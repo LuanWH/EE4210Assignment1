@@ -35,7 +35,7 @@ class ServerProcess extends SyncProcess {
 			oos.flush();
 			return sendFile(fileName);
 		} catch(IOException | ClassNotFoundException e){
-			System.out.println(name + "1: " + e.getMessage());
+			System.out.println(name + ": " + e.getMessage());
 			return false;			
 		}
 	}
@@ -49,7 +49,7 @@ class ServerProcess extends SyncProcess {
 			oos.flush();
 			return receiveFile(fileName);
 		} catch(IOException | ClassNotFoundException e){
-			System.out.println(name + "2: " + e.getMessage());
+			System.out.println(name + ": " + e.getMessage());
 			return false;			
 		}
 	}
@@ -89,7 +89,7 @@ class ServerProcess extends SyncProcess {
 			return true;
 			
 		} catch(IOException e){
-			System.out.println(name + "3: " + e.getMessage());
+			System.out.println(name + ": " + e.getMessage());
 			return false;			
 		}
 	}
@@ -151,7 +151,7 @@ class ServerProcess extends SyncProcess {
 					if(socket != null) socket.close();
 					return;
 				}
-				System.out.println(name + ": port bind successful.");
+				System.out.println(name + ": waiting for connection.");
 
 				socket.setSoTimeout(TIME_OUT);
 
@@ -198,11 +198,12 @@ class ServerProcess extends SyncProcess {
 					if(ois != null)ois.close();
 					if(socket != null)socket.close();
 				} catch (Exception e1){
-					System.out.println(name+": "+e1.getMessage());
+					System.out.println(name+": Something went wrong - "+e1.getMessage());
 				}
 				System.out.println(name+": connected was closed by the peer.");
 			} catch (IOException e) {
-				e.printStackTrace();
+				System.out.println(name+": Something went wrong - "+e.getMessage()+
+									". Please try again.");
 			}
 		}
 	}

@@ -32,10 +32,8 @@ class ClientProcess extends SyncProcess {
 	private Vector<Set<String>> syncFileList(Set<String> fileList){
 		try{
 			boolean success;
-			System.out.println(name + ": "+SYNC_FILE_LIST);
 			oos.writeObject(SYNC_FILE_LIST);
 			oos.flush();
-			System.out.println(name + ": "+SYNC_FILE_LIST+ " sent.");
 			String ack = (String) ois.readObject();
 			if (!ack.equalsIgnoreCase(ACK_SYNC)) {
 				return null;
@@ -55,9 +53,6 @@ class ClientProcess extends SyncProcess {
 					result.add(recv);
 				}
 			}
-			
-			System.out.println(name + ": response received!");
-			
 			return result;
 		} catch (IOException | ClassNotFoundException e){
 			System.out.println(name + ": " + e.getMessage());
@@ -88,10 +83,8 @@ class ClientProcess extends SyncProcess {
 
 	private boolean requestFile(String fileName) {
 		try {
-			System.out.println(name + ": "+REQUEST_FILE);
 			oos.writeObject(REQUEST_FILE);
 			oos.flush();
-			System.out.println(name + ": "+REQUEST_FILE+" sent.");
 			String ack = (String) ois.readObject();
 			if (!ack.equalsIgnoreCase(ACK_REQUEST)) {
 				return false;
@@ -138,21 +131,18 @@ class ClientProcess extends SyncProcess {
 			} else {
 				Set<String> missingFileNameList = vLists.get(MISSING_FILE_LIST_INDEX);
 				Set<String> extraFileNameList = vLists.get(EXTRA_FILE_LIST_INDEX);
-				boolean success;
 				System.out.println("Client Missing files:");
 				for (String s : missingFileNameList) {
-					System.out.println(name+": starting request "+s);
-					success = requestFile(s);
-					System.out.println(name+": request "+success);
+					System.out.println(name+": request file "+s);
+					requestFile(s);
 				}
 				
 				System.out.println();
 				
 				System.out.println("Client Extra files:");
 				for (String s : extraFileNameList) {
-					System.out.println(name+": starting push "+s);
-					success = pushFile(s);
-					System.out.println(name+": push "+success);
+					System.out.println(name+": push file "+s);
+					pushFile(s);
 				}
 			}
 

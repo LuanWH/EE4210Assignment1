@@ -10,7 +10,7 @@ public class SyncStarter {
 	public static void main(String[] args) {
 	
 		if(args.length == 0){
-			System.out.println("Welcome to SyncPeer!"+
+			System.out.println("Welcome to SyncPeer!\n"+
 							   "Usage: \n"+
 					           "    Start the peer by specifying the folder to be synced\n"+
 							   "      and/or the IP address of the other peer.\n"+
