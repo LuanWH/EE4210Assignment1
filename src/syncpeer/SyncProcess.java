@@ -107,19 +107,19 @@ abstract class SyncProcess extends Thread {
 	protected boolean receiveFile(String fileName) {
 		try {
 			File fout = new File(folder.getPath() + File.separator + fileName);
-			System.out.println("recv "+fileName);
 			long size = ois.readLong();
-			System.out.println("recv file length "+size);
 			oos.writeObject(ACK_LENGTH);
 			oos.flush();
+			
 			byte[] bytes = new byte[(int) size];
 			ois.read(bytes);
-			System.out.println("recv bytes read.");
 			FileOutputStream fos = new FileOutputStream(fout);
 			fos.write(bytes);
 			fos.close();
+			
 			oos.writeObject(ACK_RECV);
 			oos.flush();
+			
 			return true;
 		} catch (IOException e) {
 			System.out.println(name + ": " + e.getMessage());
@@ -129,16 +129,14 @@ abstract class SyncProcess extends Thread {
 
 	protected boolean sendFile(String fileName){
 		try{
-			System.out.println("send "+fileName);
+
 			File fin = new File(folder.getPath() + File.separator + fileName);
 			if (!fin.exists()) {
 				throw new IOException("File " + fin.getName() + " not found!");
 			}
 			long size = fin.length();
-			System.out.println("send file length "+size);
 			oos.writeLong(size);
 			oos.flush();
-			System.out.println("send file length sent.");
 			
 			String lengthAck = (String) ois.readObject();
 			if (!lengthAck.equalsIgnoreCase(ACK_LENGTH)) {
@@ -148,7 +146,6 @@ abstract class SyncProcess extends Thread {
 			byte[] bytes = Files.readAllBytes(fin.toPath());
 			oos.write(bytes);
 			oos.flush();
-			System.out.println("send bytes sent.");
 			
 			String recvAck = (String) ois.readObject();
 			if (!recvAck.equalsIgnoreCase(ACK_RECV)) {
