@@ -159,7 +159,8 @@ class ClientProcess extends SyncProcess {
 			socket.close();
 			
 			System.out.println(name+": synchronization finished!");
-
+		}catch(java.net.ConnectException e){
+			System.out.println(name + ": Failed to establish connection to "+this.ipAddr);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
