@@ -14,14 +14,14 @@ import java.util.Set;
 
 class ServerProcess extends SyncProcess {
 
-	private static final String ServerProcessName = "ServerProcess";
+	private static final String SERVER_PROCESS_NAME = "ServerProcess";
 
 	private ServerSocket socket;
 
 	ServerProcess(File folder, int port) {
 		this.folder = folder;
 		this.port = port;
-		this.name = ServerProcessName;
+		this.name = SERVER_PROCESS_NAME;
 		this.isClosed = false;
 	}
 

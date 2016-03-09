@@ -52,7 +52,7 @@ public class Peer {
 		}
 	}
 	
-	public void exit(){
+	private void exit(){
 		if(server != null){
 			server.close();
 		}

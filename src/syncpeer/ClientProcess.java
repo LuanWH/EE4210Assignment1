@@ -12,12 +12,12 @@ import java.util.Vector;
 
 class ClientProcess extends SyncProcess {
 
-	public static final String ClientProcessName = "ClientProcess";
+	public static final String CLIENT_PROCESS_NAME = "ClientProcess";
 
-	protected Socket socket;
+	private Socket socket;
 
 	ClientProcess(File folder, int port, String ipAddr) {
-		this.name = ClientProcessName;
+		this.name = CLIENT_PROCESS_NAME;
 		this.folder = folder;
 		this.port = port;
 		this.ipAddr = ipAddr;

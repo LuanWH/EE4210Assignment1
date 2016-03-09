@@ -19,7 +19,7 @@ public class SyncStarter {
 		}
 		
 		String _folderPath = args[0].trim();
-		File folder = new File(_folderPath);
+		final File folder = new File(_folderPath);
 		if(!(folder.exists() && folder.isDirectory())){
 			boolean suc = folder.mkdir();
 			if(!suc){
@@ -32,19 +32,25 @@ public class SyncStarter {
 			return;
 		}
 		
-		String ipAddr = null;
+		final String ipAddr;
 		if(args.length >= 2){
 			ipAddr = args[1];
+		} else {
+			ipAddr = null;
 		}
-
-		Peer peer = new Peer(folder, PORT, ipAddr);
 
 		try{
-			peer.start();
+			new Runnable(){
+
+				@Override
+				public void run() {
+					Peer peer = new Peer(folder, PORT, ipAddr);
+					peer.start();
+				}
+				
+			}.run();
 		} catch(Exception e){
-			e.printStackTrace();
+			System.out.println("Cannot start synchronization because "+e.getMessage()+". Please try again.");
 		}
-		
-		System.out.println("Sync Starter terminated.");
 	}
 }
