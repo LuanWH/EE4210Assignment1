@@ -2,7 +2,23 @@
 
 ###Introduction
 
-Import the project to Eclipse. 
+Import the project to Eclipse and run SyncStarter with parameters. 
+
+Alternatively, you can build and run the program in unix terminal following instructions below.
+
+Navigate to `src` folder:
+
+`cd src`
+
+Compile the program by running:
+
+`javac syncpeer/SyncStarter.java`
+
+or
+
+``javac `find . -name '*.java'```
+
+for a clean build.
 
 After build, run the first peer by 
 
@@ -10,7 +26,7 @@ After build, run the first peer by
 
 An example folder `SyncFiles` and a few examples files are provided:
 
-`java syncpeer.SyncStarter SyncFiles`
+`java syncpeer.SyncStarter ../SyncFiles`
 
 Start another command window and run the second peer by 
 
@@ -34,7 +50,7 @@ Type in
 
 and the peer will try to connect to the ip address provided. 
 Once the connection is established, the file synchronization will automatically begin.
-The connection will be closed after file synchronization finishes.
+The connection will be closed after file synchronization is finished.
 
 ##### Exit
 
