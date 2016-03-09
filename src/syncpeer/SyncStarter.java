@@ -40,6 +40,7 @@ public class SyncStarter {
 		}
 
 		try{
+			Thread t = new Thread(
 			new Runnable(){
 
 				@Override
@@ -48,7 +49,8 @@ public class SyncStarter {
 					peer.start();
 				}
 				
-			}.run();
+			});
+			t.start();
 		} catch(Exception e){
 			System.out.println("Cannot start synchronization because "+e.getMessage()+". Please try again.");
 		}
