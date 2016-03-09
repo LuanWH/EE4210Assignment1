@@ -8,27 +8,37 @@ import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Vector;
 
 abstract class SyncProcess extends Thread {
 
-	public static final String REQUEST_FILE = "REQUEST";
-	public static final String ACK_REQUEST = "ACK_REQUEST";
-	public static final String PUSH_FILE = "PUSH";
-	public static final String ACK_PUSH = "ACK_PUSH";
-	public static final String SYNC_FILE_LIST = "SYNC_FILE_LIST";
-	public static final String ACK_SYNC = "ACK_SYNC";
-	
-	public static final String ACK_NAME = "ACK_NAME";
-	public static final String ACK_LENGTH = "ACK_LENGTH";
-	public static final String ACK_RECV = "ACK_RECV";
+	public static final String TYPE_REQUEST = "REQUEST";
+	public static final String TYPE_PUSH = "PUSH";
+	public static final String TYPE_SYNC = "SYNC";
+	public static final String TYPE_ACK = "ACK";
+	public static final String NIL = "";
+		
+	public static final int MSG_SIZE = 3;
+	public static final int MSG_TYPE_INDEX = 0;
+	public static final int MSG_NAME_INDEX = 1;
+	public static final int MSG_LENGTH_INDEX = 2;
 
-	public static final int TIME_OUT = 300;
-	public static final int BUFFER_SIZE = 4096;
-	
 	public static final int FILE_LIST_LENGTH = 2;
 	public static final int MISSING_FILE_LIST_INDEX = 0;
 	public static final int EXTRA_FILE_LIST_INDEX = 1;
-
+	
+	public static final Vector<String> ACK;
+	static{
+		ACK = new Vector<String>();
+		ACK.setSize(MSG_SIZE);
+		ACK.set(MSG_TYPE_INDEX, TYPE_ACK);
+		ACK.set(MSG_NAME_INDEX, NIL);
+		ACK.set(MSG_LENGTH_INDEX, NIL);
+	}
+	
+	public static final int TIME_OUT = 300;
+	public static final int BUFFER_SIZE = 4096;
+	
 	public String name;
 	protected int port;
 	protected File folder;
@@ -45,7 +55,34 @@ abstract class SyncProcess extends Thread {
 	public boolean isClosed() {
 		return this.isClosed;
 	}
-
+	
+	protected boolean sendMsg(String type, String name, String length) throws IOException, ClassNotFoundException{
+		Vector<String> message = new Vector<String>();
+		message.setSize(MSG_SIZE);
+		message.set(MSG_TYPE_INDEX, type);
+		message.set(MSG_NAME_INDEX, name);
+		message.set(MSG_LENGTH_INDEX, length);
+		oos.writeObject(message);
+		oos.flush();
+		return recvAck();
+	}
+	
+	protected void sendAck() throws IOException{
+		oos.writeObject(ACK);
+		oos.flush();
+	}
+	
+	@SuppressWarnings("unchecked")
+	protected boolean recvAck() throws ClassNotFoundException, IOException{
+		Vector<String> response = (Vector<String>) ois.readObject();
+		if (response.size() != MSG_SIZE || 
+			!response.get(MSG_TYPE_INDEX).equalsIgnoreCase(TYPE_ACK)){
+			return false;
+		} else {
+			return true;
+		}
+	}
+	
 	protected Set<File> getFileList() {
 		File[] listOfFiles = folder.listFiles();
 		Set<File> files = new HashSet<File>();
@@ -80,8 +117,7 @@ abstract class SyncProcess extends Thread {
 			}
 			oos.writeObject(list);
 			oos.flush();
-			String ack = (String) ois.readObject();
-			if (!ack.equalsIgnoreCase(ACK_RECV)) {
+			if (!recvAck()) {
 				return false;
 			}		
 			return true;
@@ -95,8 +131,7 @@ abstract class SyncProcess extends Thread {
 	protected Set<String> receiveFileList(){
 		try{
 			Set<String> list = (Set<String>) ois.readObject();
-			oos.writeObject(ACK_RECV);
-			oos.flush();
+			sendAck();
 			return list;
 		} catch (IOException | ClassNotFoundException e){
 			System.out.println(name + ": " + e.getMessage());
@@ -104,12 +139,18 @@ abstract class SyncProcess extends Thread {
 		}
 	}	
 
-	protected boolean receiveFile(String fileName) {
+	protected boolean receiveFile(Vector<String> msg) {
 		try {
-			File fout = new File(folder.getPath() + File.separator + fileName);
-			long size = ois.readLong();
-			oos.writeObject(ACK_LENGTH);
-			oos.flush();
+			if(msg.size() != MSG_SIZE ||
+			   msg.get(MSG_NAME_INDEX).equals(NIL) ||
+			   msg.get(MSG_LENGTH_INDEX).equals(NIL)){
+				return false;
+			}
+			
+			File fout = new File(folder.getPath() + File.separator + msg.get(MSG_NAME_INDEX));
+			long size = Long.valueOf(msg.get(MSG_LENGTH_INDEX));
+
+			sendAck();
 			
 			byte[] bytes = new byte[(int) size];
 			ois.read(bytes);
@@ -117,9 +158,7 @@ abstract class SyncProcess extends Thread {
 			fos.write(bytes);
 			fos.close();
 			
-			oos.writeObject(ACK_RECV);
-			oos.flush();
-			
+			sendAck();
 			return true;
 		} catch (IOException e) {
 			System.out.println(name + ": " + e.getMessage());
@@ -127,31 +166,24 @@ abstract class SyncProcess extends Thread {
 		}
 	}
 
-	protected boolean sendFile(String fileName){
+	protected boolean pushFile(String fileName){
 		try{
-
 			File fin = new File(folder.getPath() + File.separator + fileName);
 			if (!fin.exists()) {
 				throw new IOException("File " + fin.getName() + " not found!");
 			}
-			long size = fin.length();
-			oos.writeLong(size);
-			oos.flush();
+			long size = fin.length();			
 			
-			String lengthAck = (String) ois.readObject();
-			if (!lengthAck.equalsIgnoreCase(ACK_LENGTH)) {
-				return false;
-			}
+			boolean success = false;
+			success = sendMsg(TYPE_PUSH, fileName, String.valueOf(size));
+			if(!success) return false;
 			
 			byte[] bytes = Files.readAllBytes(fin.toPath());
+			
 			oos.write(bytes);
 			oos.flush();
-			
-			String recvAck = (String) ois.readObject();
-			if (!recvAck.equalsIgnoreCase(ACK_RECV)) {
-				return false;
-			}
-			return true;
+
+			return recvAck();
 		} catch (IOException | ClassNotFoundException e) {
 			System.out.println(name + ": " + e.getMessage());
 			return false;

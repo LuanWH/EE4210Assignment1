@@ -11,6 +11,7 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.Set;
+import java.util.Vector;
 
 class ServerProcess extends SyncProcess {
 
@@ -26,44 +27,29 @@ class ServerProcess extends SyncProcess {
 	}
 
 
-	private boolean requestHandler(){
+	private boolean requestHandler(Vector<String> request){
 		try{
-			oos.writeObject(ACK_REQUEST);
-			oos.flush();
-			String fileName = (String) ois.readObject();
-			oos.writeObject(ACK_NAME);
-			oos.flush();
-			
+			String fileName = request.get(MSG_NAME_INDEX);
+			if(fileName == NIL) return false;
+			sendAck();
+
 			System.out.println(name + ": send file "+fileName);
 			
-			return sendFile(fileName);
-		} catch(IOException | ClassNotFoundException e){
+			return pushFile(fileName);
+		} catch(IOException e){
 			System.out.println(name + ": " + e.getMessage());
 			return false;			
 		}
 	}
 	
-	private boolean pushHandler(){
-		try{
-			oos.writeObject(ACK_PUSH);
-			oos.flush();
-			String fileName = (String) ois.readObject();
-			oos.writeObject(ACK_NAME);
-			oos.flush();
-			
-			System.out.println(name + ": receive file "+fileName);
-			
-			return receiveFile(fileName);
-		} catch(IOException | ClassNotFoundException e){
-			System.out.println(name + ": " + e.getMessage());
-			return false;			
-		}
+	private boolean pushHandler(Vector<String> fileInfo){
+		System.out.println(name + ": receive file "+fileInfo.get(MSG_NAME_INDEX));
+		return receiveFile(fileInfo);
 	}
 	
 	private boolean syncHandler(){
 		try{
-			oos.writeObject(ACK_SYNC);
-			oos.flush();
+			sendAck();
 			Set<File> fileList = getFileList();
 			Set<String> fileNameList = getFileNameList(fileList);
 
@@ -100,12 +86,12 @@ class ServerProcess extends SyncProcess {
 		}
 	}
 	
-	private String readCommand() throws IOException{
+	@SuppressWarnings("unchecked")
+	private Vector<String> readCommand() throws IOException{
 		try{
-			String reading = (String) ois.readObject();
+			Vector<String> reading = (Vector<String>) ois.readObject();
 			if(reading != null &&
-			   !reading.isEmpty() &&
-			   reading != "\n"){
+			   reading.size() == MSG_SIZE){
 				return reading;
 			}
 			return null;
@@ -118,18 +104,19 @@ class ServerProcess extends SyncProcess {
 
 	}
 	
-	private boolean dispatchCommand(String cmd){
-		if(cmd == null ||
-	       cmd.isEmpty() ||
-		   cmd == "\n"){
+	private boolean dispatchCommand(Vector<String> cmd){
+		String type = cmd.get(MSG_TYPE_INDEX);
+		if(type == null ||
+		   type.isEmpty() ||
+		   type == "\n"){
 			return false;
 		}
 		boolean success = false;
-		if(cmd.equalsIgnoreCase(REQUEST_FILE)){
-			success = requestHandler();
-		} else if(cmd.equalsIgnoreCase(PUSH_FILE)){
-			success = pushHandler();
-		} else if(cmd.equalsIgnoreCase(SYNC_FILE_LIST)){
+		if(type.equalsIgnoreCase(TYPE_REQUEST)){
+			success = requestHandler(cmd);
+		} else if(type.equalsIgnoreCase(TYPE_PUSH)){
+			success = pushHandler(cmd);
+		} else if(type.equalsIgnoreCase(TYPE_SYNC)){
 			success = syncHandler();
 		}
 		return success;	
@@ -185,10 +172,13 @@ class ServerProcess extends SyncProcess {
 				ois = new ObjectInputStream(
 						fromClientSocket.getInputStream());
 				
-				String cmd;
+				Vector<String> cmd;
 				while(!isClosed() && !fromClientSocket.isClosed()){
 					cmd = readCommand();
-					if(cmd == null) continue;
+					if(cmd == null) {
+						System.out.println(name+": Invalid command from the other peer!");
+						continue;
+					}
 					dispatchCommand(cmd);
 				}
 

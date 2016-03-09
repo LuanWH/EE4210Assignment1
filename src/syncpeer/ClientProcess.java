@@ -31,22 +31,19 @@ class ClientProcess extends SyncProcess {
 	
 	private Vector<Set<String>> syncFileList(Set<String> fileList){
 		try{
-			boolean success;
-			oos.writeObject(SYNC_FILE_LIST);
-			oos.flush();
-			String ack = (String) ois.readObject();
-			if (!ack.equalsIgnoreCase(ACK_SYNC)) {
-				return null;
-			}
-			
+			boolean success = false;
+			success = sendMsg(TYPE_SYNC, NIL, NIL);
+			if(!success)return null;
+
+			//System.out.println("testing1");
 			success = sendFileList(fileList);
-			if(!success){
-				return null;
-			}
-			
+			if(!success)return null;
+			//System.out.println("testing2");
 			Vector<Set<String>> result = new Vector<Set<String>>();
 			for(int i = 0; i < FILE_LIST_LENGTH; ++i){
+				//System.out.println("testing3");
 				Set<String> recv = receiveFileList();
+				//System.out.println("testing4");
 				if(recv == null){
 					return null;
 				} else {
@@ -60,44 +57,15 @@ class ClientProcess extends SyncProcess {
 		}
 	}
 
-	private boolean pushFile(String fileName){
-		try {
-			oos.writeObject(PUSH_FILE);
-			oos.flush();
-			String ack = (String) ois.readObject();
-			if (!ack.equalsIgnoreCase(ACK_PUSH)) {
-				return false;
-			}
-			oos.writeObject(fileName);
-			oos.flush();
-			String nameAck = (String) ois.readObject();
-			if (!nameAck.equalsIgnoreCase(ACK_NAME)) {
-				return false;
-			}
-			return sendFile(fileName);
-		} catch (IOException | ClassNotFoundException e) {
-			System.out.println(name + ": " + e.getMessage());
-			return false;
-		}
-	}
-
+	@SuppressWarnings("unchecked")
 	private boolean requestFile(String fileName) {
 		try {
-			oos.writeObject(REQUEST_FILE);
-			oos.flush();
-			String ack = (String) ois.readObject();
-			if (!ack.equalsIgnoreCase(ACK_REQUEST)) {
-				return false;
-			}
+			boolean success = false;
+			success = sendMsg(TYPE_REQUEST, fileName, NIL);
+			if(!success) return false;
 
-			oos.writeObject(fileName);
-			oos.flush();
-			String nameAck = (String) ois.readObject();
-			if (!nameAck.equalsIgnoreCase(ACK_NAME)) {
-				return false;
-			}
-
-			return receiveFile(fileName);
+			Vector<String> fileInfo = (Vector<String>) ois.readObject();
+			return receiveFile(fileInfo);
 		} catch (IOException | ClassNotFoundException e) {
 			System.out.println(name + ": " + e.getMessage());
 			return false;
