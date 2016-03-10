@@ -24,26 +24,36 @@ class ClientProcess extends SyncProcess {
 		this.isClosed = false;
 	}
 
+	/**
+	 * Set the server IP for connection.
+	 * @param ipAddr The server IP address
+	 */
 	public void setServerIp(String ipAddr) {
 		this.ipAddr = ipAddr;
 	}
 	
-	
+	/**
+	 * Synchronize the file name list with server. It sends client local
+	 * file name lists and receive lists from server indicating the client
+	 * missing files and server missing files.
+	 * @param fileList The set of local file name list.
+	 * @return Vector of client missing file list and server missing file list
+	 */
 	private Vector<Set<String>> syncFileList(Set<String> fileList){
 		try{
+			//Send sync request to server
 			boolean success = false;
 			success = sendMsg(TYPE_SYNC, NIL, NIL);
 			if(!success)return null;
 
-			//System.out.println("testing1");
+			//Send the local file list to server
 			success = sendFileList(fileList);
 			if(!success)return null;
-			//System.out.println("testing2");
+
+			//Receive the missing file lists from server
 			Vector<Set<String>> result = new Vector<Set<String>>();
 			for(int i = 0; i < FILE_LIST_LENGTH; ++i){
-				//System.out.println("testing3");
 				Set<String> recv = receiveFileList();
-				//System.out.println("testing4");
 				if(recv == null){
 					return null;
 				} else {
@@ -57,13 +67,21 @@ class ClientProcess extends SyncProcess {
 		}
 	}
 
+	/**
+	 * Request a missing file from server.
+	 * @param fileName The client missing file name.
+	 * @return A boolean value telling whether the request is 
+	 * successful ({@code true}) or failed ({@code false}).
+	 */
 	@SuppressWarnings("unchecked")
 	private boolean requestFile(String fileName) {
 		try {
+			//Send the file request to server.
 			boolean success = false;
 			success = sendMsg(TYPE_REQUEST, fileName, NIL);
 			if(!success) return false;
 
+			//Receive the file from server.
 			Vector<String> fileInfo = (Vector<String>) ois.readObject();
 			return receiveFile(fileInfo);
 		} catch (IOException | ClassNotFoundException e) {
@@ -72,6 +90,12 @@ class ClientProcess extends SyncProcess {
 		}
 	}
 	
+	/**
+	 * Start the client and connect to the server for synchronization.
+	 * It asks the server for the differences in file lists and request
+	 * client missing files from the server followed by pushing server 
+	 * missing files to the server.
+	 */
 	@Override
 	public void run() {
 		try {

@@ -3,6 +3,11 @@ package syncpeer;
 import java.io.*;
 import syncpeer.Peer;
 
+/**
+ * A loader class to load and launch {@link Peer} application for synchronization.
+ * It will terminate after successful launch of {@link Peer}.
+ * @author Wenhao
+ */
 public class SyncStarter {
 
 	public static final int PORT = 14210;
@@ -18,6 +23,7 @@ public class SyncStarter {
 			return;
 		}
 		
+		//Find and set the sync folder. Create one if it doesn't exist.
 		String _folderPath = args[0].trim();
 		final File folder = new File(_folderPath);
 		if(!(folder.exists() && folder.isDirectory())){
@@ -32,6 +38,7 @@ public class SyncStarter {
 			return;
 		}
 		
+		//Read IP address from input if any.
 		final String ipAddr;
 		if(args.length >= 2){
 			ipAddr = args[1];
@@ -39,6 +46,7 @@ public class SyncStarter {
 			ipAddr = null;
 		}
 
+		//Load and start the Peer application in a new thread.
 		try{
 			Thread t = new Thread(
 			new Runnable(){

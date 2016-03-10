@@ -3,6 +3,12 @@ package syncpeer;
 import java.io.File;
 import java.util.Scanner;
 
+/**
+ * The synchronization peer application class. It directly interacts with users and 
+ * synchronizes files according to user inputs.
+ * @author Wenhao
+ *
+ */
 public class Peer {
 
 	public static final String EXIT_COMMAND = "EXIT";
@@ -24,6 +30,12 @@ public class Peer {
 		this.scanner = new Scanner(System.in);
 	}
 
+	/**
+	 * Starts the peer by setting up the server thread and waiting for connections.
+	 * Reading user inputs and dispatch user commands.<br>
+	 * <br>
+	 * The two acceptable commands are {@code CONNECT <IP Address>} and {@code EXIT}.
+	 */
 	public void start() {
 		server.start();
 		if(this.ipAddr != null &&
@@ -52,6 +64,10 @@ public class Peer {
 		}
 	}
 	
+	/**
+	 * Close server connection and stop client synchronization if any.<br>
+	 * Terminate server thread after connections are closed.
+	 */
 	private void exit(){
 		if(server != null){
 			server.close();
@@ -62,11 +78,16 @@ public class Peer {
 		try {
 			server.join();
 		} catch (InterruptedException e) {
-			e.printStackTrace();
+			System.out.println("Something wrong when trying to safely exit.\nReason: "+e.getMessage());
 		}
 		System.out.println("SyncPeer terminated.");
 	}
 
+	/**
+	 * Connect to a IP address and start synchronization.<br> 
+	 * It calls {@link Peer#connect()} for actual execution.
+	 * @param reading The user input with IP address.
+	 */
 	private void connect(String[] reading) {
 		if (reading.length < 2 || reading[1].isEmpty() || reading[1].equals("\n")) {
 			System.out.println("**CONNECT** command Usage: \n"
@@ -78,6 +99,10 @@ public class Peer {
 		connect();
 	}
 	
+	/**
+	 * Internal method that executes connection command to the IP address set at ({@link Peer#ipAddr}).
+	 * Call {@link Peer#connect(String[])} for setting IP address before connection.
+	 */
 	private void connect() {
 		client = new ClientProcess(this.folder, this.port, this.ipAddr);
 		client.start();
