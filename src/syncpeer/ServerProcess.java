@@ -66,14 +66,8 @@ class ServerProcess extends SyncProcess {
 	 * successful ({@code true}) or failed ({@code false}).
 	 */
 	private boolean pushHandler(Vector<String> fileInfo){
-		try{
-			System.out.println(name + ": receive file "+fileInfo.get(MSG_NAME_INDEX));
-			sendAck();
-			return receiveFile(fileInfo);
-		} catch(IOException e){
-			System.out.println(name + ": " + e.getMessage());
-			return false;			
-		}
+		System.out.println(name + ": receive file "+fileInfo.get(MSG_NAME_INDEX));
+		return receiveFile(fileInfo);
 	}
 	
 	/**

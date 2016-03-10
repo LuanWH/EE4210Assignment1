@@ -118,17 +118,23 @@ class ClientProcess extends SyncProcess {
 			Set<File> fileList = getFileList();
 			Set<String> fileNameList = getFileNameList(fileList);
 
+			//Compare file lists with server
 			Vector<Set<String>> vLists = syncFileList(fileNameList);
-
+			
+			//Request and push files according to the differences in file lists.
 			if(vLists == null){
 				System.out.println("Unable to sync file lists.");
 			} else {
 				Set<String> missingFileNameList = vLists.get(MISSING_FILE_LIST_INDEX);
 				Set<String> extraFileNameList = vLists.get(EXTRA_FILE_LIST_INDEX);
+				
+				//Request client missing files
 				for (String s : missingFileNameList) {
 					System.out.println(name+": request file "+s);
 					requestFile(s);
 				}
+				
+				//Pushing server missing files (a.k.a. client extra files)
 				for (String s : extraFileNameList) {
 					System.out.println(name+": push file "+s);
 					pushFile(s);
